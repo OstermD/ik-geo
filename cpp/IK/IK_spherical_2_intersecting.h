@@ -35,6 +35,8 @@ namespace IKS
 				Eigen::Matrix<double, 3, 1>& p, 
 							Eigen::Matrix<double, 3, 3>& R);
 
+	std::pair<Eigen::Matrix<double, 3, 1>, Eigen::Matrix<double, 3, 3>> fwdkin_py(const Kin& kin, const Solution& soln);
+
 	void setup(Kin& kin, Soln& soln,
 						Eigen::Matrix<double, 3, 1>& T, 
 						Eigen::Matrix<double, 3, 3>& R);

@@ -32,6 +32,21 @@ namespace IKS {
     }
   }
 
+  std::pair<Eigen::Matrix<double, 3, 1>, Eigen::Matrix<double, 3, 3>> fwdkin_py(const Kin& kin, const Solution& sol)
+  {
+    Eigen::Matrix<double, 3, 1> p;
+    Eigen::Matrix<double, 3, 3> R;
+
+    Soln sl;
+    for(unsigned i = 0; i < 6; i++)
+    {
+      sl.Q.push_back(std::vector<double>{sol.Q(i,0)});
+    }
+    std::cout<<"Converted eigen matrix: \n"<<kin.P<<std::endl;
+    fwdkin(kin, sl, p, R);
+    return std::pair(p, R);
+  }
+
   void setup(Kin& kin, Soln& soln,
             Eigen::Matrix<double, 3, 1>& T, Eigen::Matrix<double, 3, 3>& R) {
     Eigen::Vector3d zv;
@@ -172,6 +187,10 @@ namespace IKS {
 
   Solution IK_spherical_2_intersecting_py(const Eigen::Matrix<double, 3, 3>& R_0T, const Eigen::Vector3d& p_0T, const Kin& kin)
   {
+      std::cout<<"R_0T: \n"<< R_0T<<std::endl;
+      std::cout<<"p_0T: \n"<< p_0T<<std::endl;
+      std::cout<<"Kin_H: \n"<< kin.H<<std::endl;
+      std::cout<<"Kin_P: \n"<< kin.P<<std::endl;
       Solution sol;
       IK_spherical_2_intersecting(R_0T, p_0T, kin, sol.Q, sol.is_LS_vec);
       return sol;
