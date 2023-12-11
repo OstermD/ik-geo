@@ -20,6 +20,15 @@ use {
     },
 };
 
+pub struct Puma {
+    kin: Kinematics<6, 7>,
+    r: Matrix3<f64>,
+    t: Vector3<f64>,
+
+    q: Vec<Vector6<f64>>,
+    is_ls: Vec<bool>,
+}
+
 pub struct Irb6640 {
     kin: Kinematics<6, 7>,
     r: Matrix3<f64>,
@@ -106,6 +115,22 @@ pub fn hardcoded_setup_from_string(raw: &str, r: &mut Matrix3<f64>, t: &mut Vect
         data[10],
         data[11]
     );
+}
+
+impl Puma {
+    pub fn get_kin() -> Kinematics<6, 7> {
+        let mut kin = Kinematics::new();
+                 
+        let zv = Vector3::zeros();
+        let ex = Vector3::x();
+        let ey = Vector3::y();
+        let ez = Vector3::z();
+
+        kin.h = Matrix3x6::from_columns(&[ez, -ey, -ey, ez, -ey, ez]);
+        kin.p = Matrix3x7::from_columns(&[0.54864*ez, 0.07493 * ez - 0.14224 * ey, 0.4318 * ex - 0.0254 * ey, 0.0381*ey + 0.35179*ez, 0.080299*ez, 0.05334*ez, zv]);
+
+        kin
+    }
 }
 
 impl Irb6640 {

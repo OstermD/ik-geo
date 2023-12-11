@@ -176,6 +176,7 @@ namespace IKS {
           Q.conservativeResize(6, Q.cols() + 1);
           Q.col(Q.cols() - 1) = q;
 
+          // TODO: Why 5 values for 6 angles ? This is weird - should be fixed
           Eigen::Matrix<double, 5, 1> q_ls;
           q_ls << t3_is_ls, t12_is_ls, q5_is_ls, q4_is_ls, q6_is_ls;
           Q_LS.conservativeResize(5, Q_LS.cols() + 1);
@@ -192,7 +193,9 @@ namespace IKS {
       std::cout<<"Kin_H: \n"<< kin.H<<std::endl;
       std::cout<<"Kin_P: \n"<< kin.P<<std::endl;
       Solution sol;
-      IK_spherical_2_intersecting(R_0T, p_0T, kin, sol.Q, sol.is_LS_vec);
+      Eigen::Matrix<double, 5, Eigen::Dynamic> q_ls; // TODO: Why 5 values for 6 angles ? This is weird - should be fixed + shouldn't be double
+
+      IK_spherical_2_intersecting(R_0T, p_0T, kin, sol.Q, q_ls);
       return sol;
   }
 }

@@ -1,7 +1,7 @@
 pub(crate) mod setups;
 
 use {
-    self::setups::{ Irb6640, KukaR800FixedQ3, Ur5, ThreeParallelBot, TwoParallelBot, RrcFixedQ6, SphericalBot, YumiFixedQ3 },
+    self::setups::{ Puma, Irb6640, KukaR800FixedQ3, Ur5, ThreeParallelBot, TwoParallelBot, RrcFixedQ6, SphericalBot, YumiFixedQ3 },
     super::{ spherical_two_parallel, spherical_two_intersecting, three_parallel_two_intersecting, three_parallel, two_parallel, two_intersecting, spherical, gen_six_dof },
     nalgebra::{ Matrix3, Vector3, Vector6 },
 };
@@ -39,4 +39,8 @@ pub fn two_parallel_bot(r: &Matrix3<f64>, t: &Vector3<f64>) -> (Vec<Vector6<f64>
 
 pub fn spherical_bot(r: &Matrix3<f64>, t: &Vector3<f64>) -> (Vec<Vector6<f64>>, Vec<bool>) {
     spherical(&r, &t, &SphericalBot::get_kin())
+}
+
+pub fn puma(r: &Matrix3<f64>, t: &Vector3<f64>) -> (Vec<Vector6<f64>>, Vec<bool>) {
+    spherical_two_intersecting(&r, &t, &Puma::get_kin())
 }

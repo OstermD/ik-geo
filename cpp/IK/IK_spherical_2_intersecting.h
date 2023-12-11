@@ -11,26 +11,10 @@
 
 #include <vector>
 #include <eigen3/Eigen/Dense>
-
+#include "./IK_Kinematic.h"
 
 namespace IKS 
 {
-	struct Kin {
-		Eigen::Matrix<double, 3, 6> H;
-		Eigen::Matrix<double, 3, 7> P;
-		Eigen::Matrix<double, 1, 6> joint_type;
-	};
-
-	struct Solution {
-		Eigen::Matrix<double, 6, Eigen::Dynamic> Q;
-		Eigen::Matrix<double, 5, Eigen::Dynamic> is_LS_vec;
-	};
-
-	struct Soln {
-		std::vector<std::vector<double>> Q;
-		std::vector<bool> is_LS_vec;
-	};
-
 	void fwdkin(const Kin& kin, const Soln& soln, 
 				Eigen::Matrix<double, 3, 1>& p, 
 							Eigen::Matrix<double, 3, 3>& R);

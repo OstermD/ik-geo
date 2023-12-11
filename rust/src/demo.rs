@@ -1,11 +1,12 @@
 use {
     std::{ env, collections::HashMap },
-    linear_subproblem_solutions_rust::inverse_kinematics::hardcoded::{ irb6640, kuka_r800_fixed_q3, rrc_fixed_q6, ur5, three_parallel_bot, two_parallel_bot, spherical_bot, yumi_fixed_q3 },
+    linear_subproblem_solutions_rust::inverse_kinematics::hardcoded::{ puma, irb6640, kuka_r800_fixed_q3, rrc_fixed_q6, ur5, three_parallel_bot, two_parallel_bot, spherical_bot, yumi_fixed_q3 },
     nalgebra::{ Matrix3, Vector3, Vector6 },
 };
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
 enum Robot {
+    Puma,
     Irb6640,
     KukaR800FixedQ3,
     RrcFixedQ6,
@@ -95,6 +96,7 @@ macro_rules! create_lookups {
 
 fn main() {
     let (robot_lookup, function_lookup) = create_lookups!(
+        "puma", Robot::Puma, puma,
         "irb-6640", Robot::Irb6640, irb6640,
         "kuka-r800-fixed-q3", Robot::KukaR800FixedQ3, kuka_r800_fixed_q3,
         "rrc-fixed-q6", Robot::RrcFixedQ6, rrc_fixed_q6,
