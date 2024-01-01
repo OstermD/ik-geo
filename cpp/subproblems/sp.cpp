@@ -102,34 +102,8 @@ namespace IKS
 		return roots;
 	}
 
-	void find_quartic_roots(Eigen::Matrix<double, 5, 1> &coeffs,
-							Eigen::Matrix<std::complex<double>, 4, 1> &roots)
-	{
-		/* Find the roots of a quartic polynomial */
-		std::complex<double> a = coeffs.coeffRef(0, 0);
-		std::complex<double> b = coeffs.coeffRef(1, 0);
-		std::complex<double> c = coeffs.coeffRef(2, 0);
-		std::complex<double> d = coeffs.coeffRef(3, 0);
-		std::complex<double> e = coeffs.coeffRef(4, 0);
-
-		std::complex<double> p1 = 2.0 * c * c * c - 9.0 * b * c * d + 27.0 * a * d * d + 27.0 * b * b * e - 72.0 * a * c * e;
-		std::complex<double> q1 = c * c - 3.0 * b * d + 12.0 * a * e;
-		std::complex<double> p2 = p1 + sqrt(-4.0 * q1 * q1 * q1 + p1 * p1);
-		std::complex<double> q2 = cbrt(p2.real() / 2.0);
-		std::complex<double> p3 = q1 / (3.0 * a * q2) + q2 / (3.0 * a);
-		std::complex<double> p4 = sqrt((b * b) / (4.0 * a * a) - (2.0 * c) / (3.0 * a) + p3);
-		std::complex<double> p5 = (b * b) / (2.0 * a * a) - (4.0 * c) / (3.0 * a) - p3;
-		std::complex<double> p6 = (-(b * b * b) / (a * a * a) + (4.0 * b * c) / (a * a) - (8.0 * d) / a) / (4.0 * p4);
-
-		roots(0, 0) = -b / (4.0 * a) - p4 / 2.0 - sqrt(p5 - p6) / 2.0;
-		roots(1, 0) = -b / (4.0 * a) - p4 / 2.0 + sqrt(p5 - p6) / 2.0;
-		roots(2, 0) = -b / (4.0 * a) + p4 / 2.0 - sqrt(p5 + p6) / 2.0;
-		roots(3, 0) = -b / (4.0 * a) + p4 / 2.0 + sqrt(p5 + p6) / 2.0;
-	}
-
-	void solve_2_ellipse_numeric(Eigen::Vector2d &xm1, Eigen::Matrix<double, 2, 2> &xn1,
-								 Eigen::Vector2d &xm2, Eigen::Matrix<double, 2, 2> &xn2,
-								 Eigen::Matrix<double, 4, 1> &xi_1, Eigen::Matrix<double, 4, 1> &xi_2)
+	Eigen::Matrix<double, 4, 2> solve_2_ellipse_numeric(const Eigen::Vector2d &xm1, const Eigen::Matrix<double, 2, 2> &xn1,
+														const Eigen::Vector2d &xm2, const Eigen::Matrix<double, 2, 2> &xn2)
 	{
 		/* solve for intersection of 2 ellipses defined by
 
@@ -165,20 +139,21 @@ namespace IKS
 
 		double z4 = a * a * c1 * c1 - 2 * a * c1 * a1 * c + a1 * a1 * c * c - b * a * b1 * c1 - b * b1 * a1 * c + b * b * a1 * c1 + c * a * b1 * b1;
 
-		Eigen::Matrix<double, 5, 1> z;
+		Eigen::Matrix<double, 1, 5> z;
 		z << z0, z1, z2, z3, z4;
-		Eigen::Matrix<std::complex<double>, 4, 1> roots;
-		find_quartic_roots(z, roots);
+		std::vector<std::complex<double>> roots = quartic_roots(z);
 
+		Eigen::Matrix<double, 4, 2> xi;
 		for (int i = 0; i < 4; i++)
 		{
-			double y_r = roots.coeffRef(i, 0).real();
+			double y_r = roots.at(i).real();
 			double y_sq = y_r * y_r;
-			xi_2(i, 0) = y_r;
+			xi(i, 1) = y_r;
 
 			double x_r = -(a * fq + a * c1 * y_sq - a1 * c * y_sq + a * e1 * y_r - a1 * e * y_r - a1 * f) / (a * b1 * y_r + a * d1 - a1 * b * y_r - a1 * d);
-			xi_1(i, 0) = x_r;
+			xi(i, 0) = x_r;
 		}
+		return xi;
 	}
 
 	// ===== SUBPROBLEMS ===== //
@@ -229,74 +204,6 @@ namespace IKS
 
 		theta1 = atan2(sc(0, 0), sc(1, 0));
 		theta2 = atan2(sc(2, 0), sc(3, 0));
-	}
-
-	void sp6_run(Eigen::Matrix<double, 3, 4> &p,
-				 Eigen::Matrix<double, 3, 4> &k,
-				 Eigen::Matrix<double, 3, 4> &h,
-				 double &d1, double &d2,
-				 std::vector<double> &theta1, std::vector<double> &theta2)
-	{
-
-		Eigen::Vector3d k1Xp1 = k.col(0).cross(p.col(0));
-		Eigen::Vector3d k2Xp2 = k.col(1).cross(p.col(1));
-		Eigen::Vector3d k3Xp3 = k.col(2).cross(p.col(2));
-		Eigen::Vector3d k4Xp4 = k.col(3).cross(p.col(3));
-
-		Eigen::Matrix<double, 3, 2> A_1;
-		A_1 << k1Xp1, -k.col(0).cross(k1Xp1);
-		Eigen::Matrix<double, 3, 2> A_2;
-		A_2 << k2Xp2, -k.col(1).cross(k2Xp2);
-		Eigen::Matrix<double, 3, 2> A_3;
-		A_3 << k3Xp3, -k.col(2).cross(k3Xp3);
-		Eigen::Matrix<double, 3, 2> A_4;
-		A_4 << k4Xp4, -k.col(3).cross(k4Xp4);
-
-		Eigen::Matrix<double, 2, 4> A;
-		A << (h.col(0).transpose() * A_1), (h.col(1).transpose() * A_2),
-			(h.col(2).transpose() * A_3), (h.col(3).transpose() * A_4);
-
-		Eigen::Matrix<double, 4, 1> x_min;
-		Eigen::Matrix<double, 2, 1> den;
-		den << (d1 - h.col(0).transpose() * k.col(0) * k.col(0).transpose() * p.col(0) - h.col(1).transpose() * k.col(1) * k.col(1).transpose() * p.col(1)),
-			(d2 - h.col(2).transpose() * k.col(2) * k.col(2).transpose() * p.col(2) - h.col(3).transpose() * k.col(3) * k.col(3).transpose() * p.col(3));
-		x_min = A.colPivHouseholderQr().solve(den);
-
-		Eigen::CompleteOrthogonalDecomposition<
-			Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>>
-			cod;
-		cod.compute(A);
-		unsigned rk = cod.rank();
-		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> P =
-			cod.colsPermutation();
-		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> V =
-			cod.matrixZ().transpose();
-		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> x_null =
-			P * V.block(0, rk, V.rows(), V.cols() - rk);
-
-		Eigen::Matrix<double, 4, 1> x_null_1 = x_null.col(0);
-		Eigen::Matrix<double, 4, 1> x_null_2 = x_null.col(1);
-
-		Eigen::Matrix<double, 4, 1> xi_1;
-		Eigen::Matrix<double, 4, 1> xi_2;
-
-		Eigen::Matrix<double, 2, 1> x_min_1 = x_min.block<2, 1>(0, 0);
-		Eigen::Matrix<double, 2, 1> x_min_2 = x_min.block<2, 1>(2, 0);
-		// std::cout << x_null.rows() << " " << x_null.cols() << std::endl;
-		Eigen::Matrix<double, 2, 2> x_n_1 = x_null.block<2, 2>(0, 0);
-		Eigen::Matrix<double, 2, 2> x_n_2 = x_null.block<2, 2>(2, 0);
-
-		solve_2_ellipse_numeric(x_min_1, x_n_1, x_min_2, x_n_2, xi_1, xi_2);
-
-		theta1.clear();
-		theta2.clear();
-
-		for (int i = 0; i < 4; i++)
-		{
-			Eigen::Matrix<double, 4, 1> x = x_min + x_null_1 * xi_1(i, 0) + x_null_2 * xi_2(i, 0);
-			theta1.push_back(atan2(x(0, 0), x(1, 0)));
-			theta2.push_back(atan2(x(2, 0), x(3, 0)));
-		}
 	}
 
 	///
@@ -435,7 +342,7 @@ namespace IKS
 			sum += curr_error;
 		}
 
-		return sum;
+		return sum / theta_1.size();
 	}
 
 	const std::vector<double> &SP2::get_theta_1() const
@@ -521,7 +428,7 @@ namespace IKS
 			Eigen::Matrix3d rot = Eigen::AngleAxisd(t, k.normalized()).toRotationMatrix();
 			sum += std::fabs((rot * p1 - p2).norm() - d);
 		}
-		return sum;
+		return sum / theta.size();
 	}
 
 	const std::vector<double> &SP3::get_theta() const
@@ -594,7 +501,7 @@ namespace IKS
 			Eigen::Matrix3d rot = Eigen::AngleAxisd(t, k.normalized()).toRotationMatrix();
 			sum += std::fabs(h.transpose() * rot * p - d);
 		}
-		return sum;
+		return sum / theta.size();
 	}
 
 	const std::vector<double> &SP4::get_theta() const
@@ -643,12 +550,12 @@ namespace IKS
 
 		const Eigen::Vector3d rhs = r_3 - r_1 - p_13_sq;
 
-		const Eigen::Matrix<double, 1, 5> eqn_real = convolution_3(rhs, rhs) - 4.0*convolution_3(p_13_sq, r_1);
+		const Eigen::Matrix<double, 1, 5> eqn_real = convolution_3(rhs, rhs) - 4.0 * convolution_3(p_13_sq, r_1);
 
 		const std::vector<std::complex<double>> all_roots = quartic_roots(eqn_real);
 
 		std::vector<double> h_vec;
-		for (const auto& root : all_roots)
+		for (const auto &root : all_roots)
 		{
 			if (std::fabs(root.imag()) < EPSILON)
 			{
@@ -659,11 +566,11 @@ namespace IKS
 		const Eigen::Vector3d kxp1 = k1.cross(p1);
 		const Eigen::Vector3d kxp3 = k3.cross(p3);
 
-		Eigen::Matrix<double, 3,2> a_1;
+		Eigen::Matrix<double, 3, 2> a_1;
 		a_1.col(0) = kxp1;
 		a_1.col(1) = -k1.cross(kxp1);
 
-		Eigen::Matrix<double, 3,2> a_3;
+		Eigen::Matrix<double, 3, 2> a_3;
 		a_3.col(0) = kxp3;
 		a_3.col(1) = -k3.cross(kxp3);
 
@@ -674,34 +581,33 @@ namespace IKS
 		j << 0, 1,
 			-1, 0;
 
-
-		for (const auto& h : h_vec)
+		for (const auto &h : h_vec)
 		{
 			Eigen::Vector2d const_1 = a_1.transpose() * k2 * (h - delta_1);
 			Eigen::Vector2d const_3 = a_3.transpose() * k2 * (h - delta_3);
 
-			const double hd_1 = h-delta_1;
-			const double hd_3 = h-delta_3;
+			const double hd_1 = h - delta_1;
+			const double hd_3 = h - delta_3;
 
-			const double sq_1 = (a_1.transpose() * k2).squaredNorm() - hd_1 * hd_1; 
-			if(sq_1 < 0.0)
+			const double sq_1 = (a_1.transpose() * k2).squaredNorm() - hd_1 * hd_1;
+			if (sq_1 < 0.0)
 			{
 				continue;
 			}
 
-			const double sq_3 = (a_3.transpose() * k2).squaredNorm() - hd_3 * hd_3; 
-			if(sq_3 < 0.0)
+			const double sq_3 = (a_3.transpose() * k2).squaredNorm() - hd_3 * hd_3;
+			if (sq_3 < 0.0)
 			{
 				continue;
 			}
 
-			const Eigen::Vector2d pm_1 = j*a_1.transpose() * k2 * std::sqrt(sq_1);
-			const Eigen::Vector2d pm_3 = j*a_3.transpose() * k2 * std::sqrt(sq_3);
+			const Eigen::Vector2d pm_1 = j * a_1.transpose() * k2 * std::sqrt(sq_1);
+			const Eigen::Vector2d pm_3 = j * a_3.transpose() * k2 * std::sqrt(sq_3);
 
 			for (int i_sign = 0; i_sign < signs[0].size(); ++i_sign)
 			{
-				const double& sign_1 = signs[0][i_sign];
-				const double& sign_3 = signs[1][i_sign];
+				const double &sign_1 = signs[0][i_sign];
+				const double &sign_3 = signs[1][i_sign];
 
 				Eigen::Vector2d sc_1 = const_1 + sign_1 * pm_1;
 				sc_1 = sc_1 / (a_1.transpose() * k2).squaredNorm();
@@ -714,7 +620,7 @@ namespace IKS
 
 				if (std::fabs((v1 - h * k2).norm() - (v3 - h * k2).norm()) < EPSILON)
 				{
-					SP1 sp(v3,v1,k2);
+					SP1 sp(v3, v1, k2);
 					sp.solve();
 
 					theta_1.push_back(std::atan2(sc_1.x(), sc_1.y()));
@@ -730,26 +636,26 @@ namespace IKS
 
 	void SP5::reduce_solutionset()
 	{
-    	// Given n >= 4 solutions, return the top 4 most unique
-		if(theta_1.size() <= 4)
+		// Given n >= 4 solutions, return the top 4 most unique
+		if (theta_1.size() <= 4)
 		{
 			return;
 		}
-		
-		std::vector<std::tuple<double,double,double>> common_theta;
+
+		std::vector<std::tuple<double, double, double>> common_theta;
 		common_theta.reserve(theta_1.size());
 
-		for(unsigned i = 0; i < theta_1.size(); ++i)
+		for (unsigned i = 0; i < theta_1.size(); ++i)
 		{
 			common_theta.push_back({theta_1.at(i), theta_2.at(i), theta_3.at(i)});
 		}
 
-		// Sort ascending first by theta 1, then 2, then 3 
-		const auto tuple_sort = [](const auto& a, const auto& b)
+		// Sort ascending first by theta 1, then 2, then 3
+		const auto tuple_sort = [](const auto &a, const auto &b)
 		{
-			const auto& [a1,a2,a3]= a;
-			const auto& [b1,b2,b3] = b;
-			if(a1 < b1)
+			const auto &[a1, a2, a3] = a;
+			const auto &[b1, b2, b3] = b;
+			if (a1 < b1)
 			{
 				return true;
 			}
@@ -757,15 +663,15 @@ namespace IKS
 			{
 				return false;
 			}
-			if(a2 < b2)
+			if (a2 < b2)
 			{
 				return true;
 			}
-			if(a2 > b2)
+			if (a2 > b2)
 			{
 				return false;
 			}
-			if(a3 < b3)
+			if (a3 < b3)
 			{
 				return true;
 			}
@@ -777,29 +683,29 @@ namespace IKS
 		std::vector<std::pair<double, std::tuple<double, double, double>>> ordered_common_theta;
 		ordered_common_theta.reserve(common_theta.size());
 
-		for(const auto& [t1,t2,t3] : common_theta)
+		for (const auto &[t1, t2, t3] : common_theta)
 		{
 			double delta = t1 - last;
-			double ordering = 1.0/(delta*delta);
+			double ordering = 1.0 / (delta * delta);
 
-			ordered_common_theta.push_back({ordering, {t1,t2,t3}});
+			ordered_common_theta.push_back({ordering, {t1, t2, t3}});
 			last = t1;
 		}
 
-		// Sort ascending first by theta 1, then 2, then 3 
-		const auto ordered_tuple_sort = [&tuple_sort](const auto& a, const auto& b)
+		// Sort ascending first by theta 1, then 2, then 3
+		const auto ordered_tuple_sort = [&tuple_sort](const auto &a, const auto &b)
 		{
-			const auto& [o1,t1] = a;
-			const auto& [o2,t2] = b;
+			const auto &[o1, t1] = a;
+			const auto &[o2, t2] = b;
 			if (o1 < o2)
 			{
 				return true;
 			}
-			if(o1 > o2)
+			if (o1 > o2)
 			{
 				return false;
 			}
-			return tuple_sort(t1,t2);
+			return tuple_sort(t1, t2);
 		};
 
 		std::sort(ordered_common_theta.begin(), ordered_common_theta.end(), ordered_tuple_sort);
@@ -808,15 +714,14 @@ namespace IKS
 		theta_2.clear();
 		theta_3.clear();
 
-		for(unsigned i = 0; i < 4; ++i)
+		for (unsigned i = 0; i < 4; ++i)
 		{
-			const auto& [_, thetas] = ordered_common_theta.at(i);
+			const auto &[_, thetas] = ordered_common_theta.at(i);
 			theta_1.push_back(std::get<0>(thetas));
 			theta_2.push_back(std::get<1>(thetas));
 			theta_3.push_back(std::get<2>(thetas));
 		}
 	}
-
 
 	const double SP5::error() const
 	{
@@ -825,9 +730,22 @@ namespace IKS
 			throw std::runtime_error("error() function of SP5 was called before it was solved!\n");
 		}
 
-		// Subproblem 5 doesn't have a least squares solution
-		// TODO: i.e. always zero? 
-		return 0;
+		double sum = 0;
+
+		for (unsigned i = 0; i < theta_1.size(); i++)
+		{
+			const double &t1 = theta_1.at(i);
+			const double &t2 = theta_2.at(i);
+			const double &t3 = theta_3.at(i);
+
+			Eigen::Matrix3d rot_1 = Eigen::AngleAxisd(t1, k1.normalized()).toRotationMatrix();
+			Eigen::Matrix3d rot_2 = Eigen::AngleAxisd(t2, k3.normalized()).toRotationMatrix();
+			Eigen::Matrix3d rot_3 = Eigen::AngleAxisd(t3, k3.normalized()).toRotationMatrix();
+
+			sum += (p0 + rot_1 * p1 - rot_2 * (p2 + rot_3 * p3)).norm();
+		}
+
+		return sum / theta_1.size();
 	}
 
 	const std::vector<double> &SP5::get_theta_1() const
@@ -855,5 +773,135 @@ namespace IKS
 			throw std::runtime_error("get_theta_3() function of SP5 was called before it was solved!\n");
 		}
 		return this->theta_3;
+	}
+
+	///
+	//
+	// Subproblem 6: [Four Circles] ' h1' * rot(k1, theta1) + h2' * rot(k2, theta2) = d1` and `h3' * rot(k3, theta1) + h4' * rot(k4, theta2) = d2 '
+	//
+	///
+
+	SP6::SP6(const Eigen::Vector3d &h1,
+			 const Eigen::Vector3d &h2,
+			 const Eigen::Vector3d &h3,
+			 const Eigen::Vector3d &h4,
+			 const Eigen::Vector3d &k1,
+			 const Eigen::Vector3d &k2,
+			 const Eigen::Vector3d &k3,
+			 const Eigen::Vector3d &k4,
+			 const Eigen::Vector3d &p1,
+			 const Eigen::Vector3d &p2,
+			 const Eigen::Vector3d &p3,
+			 const Eigen::Vector3d &p4,
+			 const double &d1,
+			 const double &d2) : h1(h1), h2(h2), h3(h3), h4(h4), k1(k1), k2(k2), k3(k3), k4(k4), p1(p1), p2(p2), p3(p3), p4(p4), d1(d1), d2(d2)
+	{
+	}
+
+	void SP6::solve()
+	{
+		const Eigen::Vector3d k1xp1 = k1.cross(p1);
+		const Eigen::Vector3d k2xp2 = k2.cross(p2);
+		const Eigen::Vector3d k3xp3 = k3.cross(p3);
+		const Eigen::Vector3d k4xp4 = k4.cross(p4);
+
+		Eigen::Matrix<double, 3, 2> a1;
+		a1.col(0) = k1xp1;
+		a1.col(1) = -k1.cross(k1xp1);
+		Eigen::Matrix<double, 3, 2> a2;
+		a2.col(0) = k2xp2;
+		a2.col(1) = -k2.cross(k2xp2);
+		Eigen::Matrix<double, 3, 2> a3;
+		a3.col(0) = k3xp3;
+		a3.col(1) = -k3.cross(k3xp3);
+		Eigen::Matrix<double, 3, 2> a4;
+		a4.col(0) = k4xp4;
+		a4.col(1) = -k4.cross(k4xp4);
+
+		Eigen::Matrix<double, 2, 4> A;
+		A << (h1.transpose() * a1), (h2.transpose() * a2),
+			(h3.transpose() * a3), (h4.transpose() * a4);
+
+		Eigen::Matrix<double, 4, 1> x_min;
+		Eigen::Matrix<double, 2, 1> b;
+		b << (d1 - h1.transpose() * k1 * k1.transpose() * p1 - h2.transpose() * k2 * k2.transpose() * p2),
+			(d2 - h3.transpose() * k3 * k3.transpose() * p3 - h4.transpose() * k4 * k4.transpose() * p4);
+		x_min = A.colPivHouseholderQr().solve(b);
+
+		Eigen::CompleteOrthogonalDecomposition<
+			Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>>
+			cod;
+		cod.compute(A);
+		unsigned rk = cod.rank();
+		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> P =
+			cod.colsPermutation();
+		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> V =
+			cod.matrixZ().transpose();
+		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> x_null =
+			P * V.block(0, rk, V.rows(), V.cols() - rk);
+
+		Eigen::Matrix<double, 4, 1> x_null_1 = x_null.col(0);
+		Eigen::Matrix<double, 4, 1> x_null_2 = x_null.col(1);
+
+		Eigen::Matrix<double, 2, 1> x_min_1 = x_min.block<2, 1>(0, 0);
+		Eigen::Matrix<double, 2, 1> x_min_2 = x_min.block<2, 1>(2, 0);
+
+		Eigen::Matrix<double, 2, 2> x_n_1 = x_null.block<2, 2>(0, 0);
+		Eigen::Matrix<double, 2, 2> x_n_2 = x_null.block<2, 2>(2, 0);
+
+		Eigen::Matrix<double, 4, 2> xi = solve_2_ellipse_numeric(x_min_1, x_n_1, x_min_2, x_n_2);
+
+		for (int i = 0; i < 4; i++)
+		{
+			Eigen::Matrix<double, 4, 1> x = x_min + x_null_1 * xi(i, 0) + x_null_2 * xi(i, 1);
+			theta_1.push_back(atan2(x(0, 0), x(1, 0)));
+			theta_2.push_back(atan2(x(2, 0), x(3, 0)));
+		}
+
+		is_calculated = true;
+	}
+
+	const double SP6::error() const
+	{
+		if (!is_calculated)
+		{
+			throw std::runtime_error("Error() function of SP6 was called before it was solved!\n");
+		}
+
+		double sum = 0;
+
+		for (unsigned i = 0; i < theta_1.size(); i++)
+		{
+			const double &t1 = theta_1.at(i);
+			const double &t2 = theta_2.at(i);
+
+			Eigen::Matrix3d rot_k1_t1 = Eigen::AngleAxisd(t1, k1.normalized()).toRotationMatrix();
+			Eigen::Matrix3d rot_k2_t2 = Eigen::AngleAxisd(t2, k2.normalized()).toRotationMatrix();
+			Eigen::Matrix3d rot_k3_t1 = Eigen::AngleAxisd(t1, k3.normalized()).toRotationMatrix();
+			Eigen::Matrix3d rot_k4_t2 = Eigen::AngleAxisd(t2, k4.normalized()).toRotationMatrix();
+
+			const Eigen::Vector2d err_vec((h1.transpose() * rot_k1_t1 * p1 + h2.transpose() * rot_k2_t2 * p2).x() - d1,
+										  (h3.transpose() * rot_k3_t1 * p3 + h4.transpose() * rot_k4_t2 * p4).x() - d2);
+			sum += err_vec.norm();
+		}
+		return sum;
+	}
+
+	const std::vector<double> &SP6::get_theta_1() const
+	{
+		if (!is_calculated)
+		{
+			throw std::runtime_error("get_theta_1() function of SP6 was called before it was solved!\n");
+		}
+		return this->theta_1;
+	}
+
+	const std::vector<double> &SP6::get_theta_2() const
+	{
+		if (!is_calculated)
+		{
+			throw std::runtime_error("get_theta_2() function of SP6 was called before it was solved!\n");
+		}
+		return this->theta_2;
 	}
 }

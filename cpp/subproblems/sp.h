@@ -12,8 +12,10 @@ namespace IKS
 #endif
 
   std::pair<Eigen::Vector2d, Eigen::Vector3d> cone_polynomials(const Eigen::Vector3d &p0_i, const Eigen::Vector3d &k_i, const Eigen::Vector3d &p_i, const Eigen::Vector3d &p_i_s, const Eigen::Vector3d &k2);
-	Eigen::Matrix<double, 1, 3> convolution_2(const Eigen::Vector2d &v1, const Eigen::Vector2d &v2);
-	Eigen::Matrix<double, 1, 5> convolution_3(const Eigen::Vector3d &v1, const Eigen::Vector3d &v2);
+  Eigen::Matrix<double, 1, 3> convolution_2(const Eigen::Vector2d &v1, const Eigen::Vector2d &v2);
+  Eigen::Matrix<double, 1, 5> convolution_3(const Eigen::Vector3d &v1, const Eigen::Vector3d &v2);
+  Eigen::Matrix<double, 4, 2> solve_2_ellipse_numeric(const Eigen::Vector2d &xm1, const Eigen::Matrix<double, 2, 2> &xn1,
+                                                      const Eigen::Vector2d &xm2, const Eigen::Matrix<double, 2, 2> &xn2);
 
   class Subproblem
   {
