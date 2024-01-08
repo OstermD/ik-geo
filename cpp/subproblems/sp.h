@@ -16,7 +16,6 @@ namespace IKS
   Eigen::Matrix<double, 1, 5> convolution_3(const Eigen::Vector3d &v1, const Eigen::Vector3d &v2);
   Eigen::Matrix<double, 4, 2> solve_2_ellipse_numeric(const Eigen::Vector2d &xm1, const Eigen::Matrix<double, 2, 2> &xn1,
                                                       const Eigen::Vector2d &xm2, const Eigen::Matrix<double, 2, 2> &xn2);
-
   class Subproblem
   {
   public:
@@ -24,13 +23,13 @@ namespace IKS
     virtual void solve() = 0;
 
     // Returns whether or not the solution is an least-squares approximation
-    virtual const bool solution_is_ls() const final
+    virtual bool solution_is_ls() const final
     {
       return this->_solution_is_ls;
     }
 
     // Returns the absolte least-squares error (0 if an analytical solution exists)
-    virtual const double error() const = 0;
+    virtual double error() const = 0;
 
   protected:
     Subproblem() = default;
@@ -47,9 +46,10 @@ namespace IKS
     SP1(const Eigen::Vector3d &p1, const Eigen::Vector3d &p2, const Eigen::Vector3d &k);
     void solve() override;
 
-    const double error() const override;
+    double error() const override;
+    double error(const double& theta) const;
 
-    const double get_theta() const;
+    double get_theta() const;
 
   private:
     // Inpute members
@@ -73,7 +73,8 @@ namespace IKS
         const Eigen::Vector3d &k2);
     void solve() override;
 
-    const double error() const override;
+    double error() const override;
+    double error(const double& theta_1, const double& theta_2) const;  
 
     const std::vector<double> &get_theta_1() const;
     const std::vector<double> &get_theta_2() const;
@@ -101,7 +102,8 @@ namespace IKS
         const double &d);
     void solve() override;
 
-    const double error() const override;
+    double error() const override;
+    double error(const double& theta) const;
 
     const std::vector<double> &get_theta() const;
 
@@ -127,7 +129,8 @@ namespace IKS
         const double &d);
     void solve() override;
 
-    const double error() const override;
+    double error() const override;
+    double error(const double& theta) const;
 
     const std::vector<double> &get_theta() const;
 
@@ -157,7 +160,8 @@ namespace IKS
         const Eigen::Vector3d &k3);
     void solve() override;
 
-    const double error() const override;
+    double error() const override;
+    double error(const double& theta_1, const double& theta_2, const double& theta_3) const;
 
     const std::vector<double> &get_theta_1() const;
     const std::vector<double> &get_theta_2() const;
@@ -201,7 +205,8 @@ namespace IKS
         const double &d2);
     void solve() override;
 
-    const double error() const override;
+    double error() const override;
+    double error(const double& theta_1, const double& theta_2) const;
 
     const std::vector<double> &get_theta_1() const;
     const std::vector<double> &get_theta_2() const;

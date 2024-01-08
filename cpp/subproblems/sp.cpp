@@ -8,6 +8,7 @@
 #include <vector>
 #include <limits>
 #include <complex>
+#include <iostream>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/unsupported/Eigen/Polynomials>
 
@@ -32,8 +33,7 @@ namespace IKS
 		double P_const = norm_kiXpi_sq + p_i_s.dot(p_i_s) + 2 * alpha * delta;
 		P << -2 * alpha, P_const;
 
-		R << -1, 2 * delta, -pow(delta, 2);
-		R(0, 2) = R(0, 2) + norm_kiXpi_sq * norm_kiXk2_sq;
+		R << -1, 2 * delta, -pow(delta, 2)+norm_kiXpi_sq * norm_kiXk2_sq;
 		R = pow(2 * beta, 2) * R;
 
 		return {P, R};
@@ -153,6 +153,7 @@ namespace IKS
 			double x_r = -(a * fq + a * c1 * y_sq - a1 * c * y_sq + a * e1 * y_r - a1 * e * y_r - a1 * f) / (a * b1 * y_r + a * d1 - a1 * b * y_r - a1 * d);
 			xi(i, 0) = x_r;
 		}
+
 		return xi;
 	}
 
@@ -234,17 +235,22 @@ namespace IKS
 		is_calculated = true;
 	}
 
-	const double SP1::error() const
+	double SP1::error() const
 	{
 		if (!is_calculated)
 		{
 			throw std::runtime_error("Error() function of SP1 was called before it was solved!\n");
 		}
+		return error(this->theta);
+	}
+
+	double SP1::error(const double& theta) const
+	{
 		Eigen::Matrix3d rot = Eigen::AngleAxisd(theta, k.normalized()).toRotationMatrix();
 		return ((rot * p1) - p2).norm();
 	}
 
-	const double SP1::get_theta() const
+	double SP1::get_theta() const
 	{
 		if (!is_calculated)
 		{
@@ -325,7 +331,7 @@ namespace IKS
 		is_calculated = true;
 	}
 
-	const double SP2::error() const
+	double SP2::error() const
 	{
 		if (!is_calculated)
 		{
@@ -335,14 +341,17 @@ namespace IKS
 		double sum = 0;
 		for (unsigned i = 0; i < theta_1.size(); ++i)
 		{
-			Eigen::Matrix3d rot_1 = Eigen::AngleAxisd(theta_1.at(i), k1.normalized()).toRotationMatrix();
-			Eigen::Matrix3d rot_2 = Eigen::AngleAxisd(theta_2.at(i), k2.normalized()).toRotationMatrix();
-			double curr_error = (rot_1 * p1 - rot_2 * p2).norm();
-
-			sum += curr_error;
+			sum += error(this->theta_1.at(i), this->theta_2.at(i));
 		}
 
 		return sum / theta_1.size();
+	}
+
+	double SP2::error(const double& theta_1, const double& theta_2) const
+	{
+		Eigen::Matrix3d rot_1 = Eigen::AngleAxisd(theta_1, k1.normalized()).toRotationMatrix();
+		Eigen::Matrix3d rot_2 = Eigen::AngleAxisd(theta_2, k2.normalized()).toRotationMatrix();
+		return (rot_1 * p1 - rot_2 * p2).norm();
 	}
 
 	const std::vector<double> &SP2::get_theta_1() const
@@ -414,7 +423,7 @@ namespace IKS
 		is_calculated = true;
 	}
 
-	const double SP3::error() const
+	double SP3::error() const
 	{
 		if (!is_calculated)
 		{
@@ -422,13 +431,17 @@ namespace IKS
 		}
 
 		double sum = 0;
-
 		for (const auto &t : theta)
 		{
-			Eigen::Matrix3d rot = Eigen::AngleAxisd(t, k.normalized()).toRotationMatrix();
-			sum += std::fabs((rot * p1 - p2).norm() - d);
+			sum += error(t);
 		}
 		return sum / theta.size();
+	}
+
+	double SP3::error(const double& theta) const
+	{
+		Eigen::Matrix3d rot = Eigen::AngleAxisd(theta, k.normalized()).toRotationMatrix();
+		return std::fabs((rot * p1 - p2).norm() - d);
 	}
 
 	const std::vector<double> &SP3::get_theta() const
@@ -487,7 +500,7 @@ namespace IKS
 		is_calculated = true;
 	}
 
-	const double SP4::error() const
+	double SP4::error() const
 	{
 		if (!is_calculated)
 		{
@@ -495,13 +508,17 @@ namespace IKS
 		}
 
 		double sum = 0;
-
 		for (const auto &t : theta)
 		{
-			Eigen::Matrix3d rot = Eigen::AngleAxisd(t, k.normalized()).toRotationMatrix();
-			sum += std::fabs(h.transpose() * rot * p - d);
+			sum += error(t);
 		}
 		return sum / theta.size();
+	}
+
+	double SP4::error(const double& theta) const
+	{
+		Eigen::Matrix3d rot = Eigen::AngleAxisd(theta, k.normalized()).toRotationMatrix();
+		return std::fabs(h.transpose() * rot * p - d);
 	}
 
 	const std::vector<double> &SP4::get_theta() const
@@ -532,7 +549,6 @@ namespace IKS
 	void SP5::solve()
 	{
 		const double EPSILON = 1e-6; // Should this be different?
-
 		std::vector<double> theta;
 		theta.reserve(8);
 
@@ -723,7 +739,7 @@ namespace IKS
 		}
 	}
 
-	const double SP5::error() const
+	double SP5::error() const
 	{
 		if (!is_calculated)
 		{
@@ -737,15 +753,19 @@ namespace IKS
 			const double &t1 = theta_1.at(i);
 			const double &t2 = theta_2.at(i);
 			const double &t3 = theta_3.at(i);
-
-			Eigen::Matrix3d rot_1 = Eigen::AngleAxisd(t1, k1.normalized()).toRotationMatrix();
-			Eigen::Matrix3d rot_2 = Eigen::AngleAxisd(t2, k3.normalized()).toRotationMatrix();
-			Eigen::Matrix3d rot_3 = Eigen::AngleAxisd(t3, k3.normalized()).toRotationMatrix();
-
-			sum += (p0 + rot_1 * p1 - rot_2 * (p2 + rot_3 * p3)).norm();
+			sum += error(t1, t2, t3);
 		}
 
 		return sum / theta_1.size();
+	}
+
+	double SP5::error(const double& theta_1, const double& theta_2, const double& theta_3) const
+	{
+		Eigen::Matrix3d rot_1 = Eigen::AngleAxisd(theta_1, k1.normalized()).toRotationMatrix();
+		Eigen::Matrix3d rot_2 = Eigen::AngleAxisd(theta_2, k2.normalized()).toRotationMatrix();
+		Eigen::Matrix3d rot_3 = Eigen::AngleAxisd(theta_3, k3.normalized()).toRotationMatrix();
+
+		return (p0 + rot_1 * p1 - rot_2 * (p2 + rot_3 * p3)).norm();
 	}
 
 	const std::vector<double> &SP5::get_theta_1() const
@@ -826,8 +846,8 @@ namespace IKS
 		Eigen::Matrix<double, 2, 1> b;
 		b << (d1 - h1.transpose() * k1 * k1.transpose() * p1 - h2.transpose() * k2 * k2.transpose() * p2),
 			(d2 - h3.transpose() * k3 * k3.transpose() * p3 - h4.transpose() * k4 * k4.transpose() * p4);
-		x_min = A.colPivHouseholderQr().solve(b);
 
+		x_min = A.colPivHouseholderQr().solve(b);
 		Eigen::CompleteOrthogonalDecomposition<
 			Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>>
 			cod;
@@ -861,7 +881,7 @@ namespace IKS
 		is_calculated = true;
 	}
 
-	const double SP6::error() const
+	double SP6::error() const
 	{
 		if (!is_calculated)
 		{
@@ -869,22 +889,26 @@ namespace IKS
 		}
 
 		double sum = 0;
-
 		for (unsigned i = 0; i < theta_1.size(); i++)
 		{
 			const double &t1 = theta_1.at(i);
 			const double &t2 = theta_2.at(i);
 
-			Eigen::Matrix3d rot_k1_t1 = Eigen::AngleAxisd(t1, k1.normalized()).toRotationMatrix();
-			Eigen::Matrix3d rot_k2_t2 = Eigen::AngleAxisd(t2, k2.normalized()).toRotationMatrix();
-			Eigen::Matrix3d rot_k3_t1 = Eigen::AngleAxisd(t1, k3.normalized()).toRotationMatrix();
-			Eigen::Matrix3d rot_k4_t2 = Eigen::AngleAxisd(t2, k4.normalized()).toRotationMatrix();
-
-			const Eigen::Vector2d err_vec((h1.transpose() * rot_k1_t1 * p1 + h2.transpose() * rot_k2_t2 * p2).x() - d1,
-										  (h3.transpose() * rot_k3_t1 * p3 + h4.transpose() * rot_k4_t2 * p4).x() - d2);
-			sum += err_vec.norm();
+			sum += error(t1, t2);
 		}
-		return sum;
+		return sum/theta_1.size();
+	}
+
+	double SP6::error(const double& theta_1, const double& theta_2) const
+	{
+		Eigen::Matrix3d rot_k1_t1 = Eigen::AngleAxisd(theta_1, k1.normalized()).toRotationMatrix();
+		Eigen::Matrix3d rot_k2_t2 = Eigen::AngleAxisd(theta_2, k2.normalized()).toRotationMatrix();
+		Eigen::Matrix3d rot_k3_t1 = Eigen::AngleAxisd(theta_1, k3.normalized()).toRotationMatrix();
+		Eigen::Matrix3d rot_k4_t2 = Eigen::AngleAxisd(theta_2, k4.normalized()).toRotationMatrix();
+
+		const Eigen::Vector2d err_vec((h1.transpose() * rot_k1_t1 * p1 + h2.transpose() * rot_k2_t2 * p2).x() - d1,
+										  (h3.transpose() * rot_k3_t1 * p3 + h4.transpose() * rot_k4_t2 * p4).x() - d2);
+		return err_vec.norm();
 	}
 
 	const std::vector<double> &SP6::get_theta_1() const
