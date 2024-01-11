@@ -9,10 +9,11 @@
 #include <iostream>
 #include <chrono>
 #include <string>
+#include <eigen3/Eigen/Dense>
 
+#include "Spherical_IK.h"
 #include "sp.h"
 #include "../read_csv.h"
-#include <eigen3/Eigen/Dense>
 
 #define PATH_TESTS_SP1 "../../../test_cases/sp_1.csv"
 #define PATH_TESTS_SP2 "../../../test_cases/sp_2.csv"
@@ -24,13 +25,13 @@
 #define ERROR_PASS_EPSILON 1e-9
 
 bool evaluate_test(const std::string &name_test,
-					   const double &max_expected,
-					   const double &avg_expected,
-					   const double &max_actual,
-					   const double &avg_actual,
-					   const unsigned &num_LS,
-					   const unsigned& num_testcases,
-					   const double& time_avg);
+				   const double &max_expected,
+				   const double &avg_expected,
+				   const double &max_actual,
+				   const double &avg_actual,
+				   const unsigned &num_LS,
+				   const unsigned &num_testcases,
+				   const double &time_avg);
 
 bool test_SP1(const std::string &csv_path);
 bool test_SP2(const std::string &csv_path);
@@ -48,23 +49,24 @@ int main(int argc, char *argv[])
 	test_SP5(PATH_TESTS_SP5);
 	test_SP6(PATH_TESTS_SP6);
 
+	IKS::Robot_Kinematics kin({}, {});
+
 	return 0;
 }
 
-
 bool evaluate_test(const std::string &name_test,
-					   const double &max_expected,
-					   const double &avg_expected,
-					   const double &max_actual,
-					   const double &avg_actual,
-					   const unsigned &num_LS,
-					   const unsigned& num_testcases,
-					   const double& time_avg)
+				   const double &max_expected,
+				   const double &avg_expected,
+				   const double &max_actual,
+				   const double &avg_actual,
+				   const unsigned &num_LS,
+				   const unsigned &num_testcases,
+				   const double &time_avg)
 {
 	const bool is_passed{std::fabs(avg_actual - avg_expected) < ERROR_PASS_EPSILON &&
 						 std::fabs(max_actual - max_expected) < ERROR_PASS_EPSILON &&
 						 num_LS == 0};
-	std::cout << "Test ["<<name_test<<"] with " << num_testcases << " testcases: ";
+	std::cout << "Test [" << name_test << "] with " << num_testcases << " testcases: ";
 	if (is_passed)
 	{
 		std::cout << "[PASS]" << std::endl;
@@ -420,8 +422,8 @@ bool test_SP6(const std::string &csv_path)
 		p3 << data.at(30).second.at(i), data.at(31).second.at(i), data.at(32).second.at(i);
 		p4 << data.at(33).second.at(i), data.at(34).second.at(i), data.at(35).second.at(i);
 
-		d1 =  data.at(36).second.at(i);
-		d2 =  data.at(37).second.at(i);
+		d1 = data.at(36).second.at(i);
+		d2 = data.at(37).second.at(i);
 		theta_1 = data.at(38).second.at(i);
 		theta_2 = data.at(39).second.at(i);
 
