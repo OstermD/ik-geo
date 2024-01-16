@@ -6,18 +6,19 @@
 
 namespace IKS
 {
-    typename Homogeneous_T Eigen::Matrix<double, 4, 4>;
+    using Homogeneous_T = Eigen::Matrix<double, 4, 4>;
 
     struct IK_Solution
     {
         std::vector<std::vector<double>> Q;
         std::vector<bool> is_LS_vec;
-    }
+    };
 
     class Robot_Kinematics
     {
+    public:
         Robot_Kinematics(const Eigen::Matrix<double, 3, 6> &H, const Eigen::Matrix<double, 3, 7> &P);
-        void calculate_IK(const Homogeneous_T &ee_position_orientation) const;
+        IK_Solution calculate_IK(const Homogeneous_T &ee_position_orientation) const;
         Homogeneous_T fwdkin(const std::vector<double> &Q) const;
 
     private:

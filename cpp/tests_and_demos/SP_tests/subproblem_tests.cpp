@@ -11,16 +11,15 @@
 #include <string>
 #include <eigen3/Eigen/Dense>
 
-#include "Spherical_IK.h"
 #include "sp.h"
 #include "../read_csv.h"
 
-#define PATH_TESTS_SP1 "../../../test_cases/sp_1.csv"
-#define PATH_TESTS_SP2 "../../../test_cases/sp_2.csv"
-#define PATH_TESTS_SP3 "../../../test_cases/sp_3.csv"
-#define PATH_TESTS_SP4 "../../../test_cases/sp_4.csv"
-#define PATH_TESTS_SP5 "../../../test_cases/sp_5.csv"
-#define PATH_TESTS_SP6 "../../../test_cases/sp_6.csv"
+#define PATH_TESTS_SP1 "../../../../test_cases/sp_1.csv"
+#define PATH_TESTS_SP2 "../../../../test_cases/sp_2.csv"
+#define PATH_TESTS_SP3 "../../../../test_cases/sp_3.csv"
+#define PATH_TESTS_SP4 "../../../../test_cases/sp_4.csv"
+#define PATH_TESTS_SP5 "../../../../test_cases/sp_5.csv"
+#define PATH_TESTS_SP6 "../../../../test_cases/sp_6.csv"
 
 #define ERROR_PASS_EPSILON 1e-9
 
@@ -48,9 +47,6 @@ int main(int argc, char *argv[])
 	test_SP4(PATH_TESTS_SP4);
 	test_SP5(PATH_TESTS_SP5);
 	test_SP6(PATH_TESTS_SP6);
-
-	IKS::Robot_Kinematics kin({}, {});
-
 	return 0;
 }
 
