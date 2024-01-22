@@ -16,6 +16,7 @@ namespace IKS
 
     class Robot_Kinematics
     {
+        // Robot kinmatics with intersecting axes placed at a common origin
     public:
         Robot_Kinematics(const Eigen::Matrix<double, 3, 6> &H, const Eigen::Matrix<double, 3, 7> &P);
         IK_Solution calculate_IK(const Homogeneous_T &ee_position_orientation) const;
