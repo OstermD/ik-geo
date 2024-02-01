@@ -239,8 +239,8 @@ namespace IKS
 		const Eigen::Vector2d x = a * p2;
 		theta = std::atan2(x.x(), x.y());
 
-		_solution_is_ls = std::fabs(p1.norm() - p2.norm()) > ZERO_THRESH ||
-						  std::fabs(k.dot(p1) - k.dot(p2)) > ZERO_THRESH;
+		_solution_is_ls = std::fabs(p1.norm() - p2.norm()) > 1e-7 ||
+						  std::fabs(k.dot(p1) - k.dot(p2)) > 1e-7;
 
 		is_calculated = true;
 	}

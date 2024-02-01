@@ -4,16 +4,16 @@
 #include <math.h>
 
 #include "../subproblems/sp.h"
-#include "Spherical_IK.h"
+#include "IKS.h"
 
 namespace IKS
 {
-    Robot_Kinematics::Robot_Kinematics(const Eigen::Matrix<double, 3, 6> &H, const Eigen::Matrix<double, 3, 7> &P)
-        : H(H), P(P)
+    Spherical_Wrist_Robot::Spherical_Wrist_Robot(const Eigen::Matrix<double, 3, 6> &H, const Eigen::Matrix<double, 3, 7> &P)
+        : General_Robot(H, P)
     {
     }
 
-    IK_Solution Robot_Kinematics::calculate_IK(const Homogeneous_T &ee_position_orientation) const
+    IK_Solution Spherical_Wrist_Robot::calculate_IK(const Homogeneous_T &ee_position_orientation) const
     {
         IK_Solution solution;
         const Eigen::Vector3d p_0t = ee_position_orientation.block<3, 1>(0, 3);
@@ -22,6 +22,8 @@ namespace IKS
 
         // Calculate "Position-IK":
         std::vector<std::vector<double>> position_solutions;
+        std::vector<bool> position_solution_is_LS;
+
         // Check for parallel axes
         if (this->H.col(0).cross(this->H.col(1)).norm() < ZERO_THRESH)
         {
@@ -42,20 +44,18 @@ namespace IKS
                         (rot_3 * this->P.col(3) + this->P.col(2)).norm());
                 sp3.solve();
 
-                if(!sp3.solution_is_ls())
-                {
-                    const std::vector<double> &theta_1 = sp3.get_theta();
+                const std::vector<double> &theta_1 = sp3.get_theta();
 
-                    for (const auto &q1 : theta_1)
-                    {
-                        Eigen::Matrix3d rot_1_inv = Eigen::AngleAxisd(q1, -this->H.col(0).normalized()).toRotationMatrix();
-                        SP1 sp1(rot_3 * this->P.col(3) + this->P.col(2),
-                                rot_1_inv * p_16 - this->P.col(1),
-                                this->H.col(1));
-                        sp1.solve();
-                        const double &q2 = sp1.get_theta();
-                        position_solutions.push_back({q1, q2, q3});
-                    }
+                for (const auto &q1 : theta_1)
+                {
+                    Eigen::Matrix3d rot_1_inv = Eigen::AngleAxisd(q1, -this->H.col(0).normalized()).toRotationMatrix();
+                    SP1 sp1(rot_3 * this->P.col(3) + this->P.col(2),
+                            rot_1_inv * p_16 - this->P.col(1),
+                            this->H.col(1));
+                    sp1.solve();
+                    const double &q2 = sp1.get_theta();
+                    position_solutions.push_back({q1, q2, q3});
+                    position_solution_is_LS.push_back(sp4.solution_is_ls() || sp3.solution_is_ls() || sp1.solution_is_ls());
                 }
             }
         }
@@ -78,20 +78,18 @@ namespace IKS
                         (rot_1 * (-p_16) + this->P.col(1)).norm());
                 sp3.solve();
 
-                if(!sp3.solution_is_ls())
-                {
-                    const std::vector<double> &theta_3 = sp3.get_theta();
+                const std::vector<double> &theta_3 = sp3.get_theta();
 
-                    for (const auto &q3 : theta_3)
-                    {
-                        Eigen::Matrix3d rot_3 = Eigen::AngleAxisd(q3, this->H.col(2).normalized()).toRotationMatrix();
-                        SP1 sp1(-this->P.col(2) - rot_3 * this->P.col(3),
-                                rot_1 * (-p_16) + this->P.col(1),
-                                this->H.col(1));
-                        sp1.solve();
-                        const double &q2 = sp1.get_theta();
-                        position_solutions.push_back({q1, q2, q3});
-                    }
+                for (const auto &q3 : theta_3)
+                {
+                    Eigen::Matrix3d rot_3 = Eigen::AngleAxisd(q3, this->H.col(2).normalized()).toRotationMatrix();
+                    SP1 sp1(-this->P.col(2) - rot_3 * this->P.col(3),
+                            rot_1 * (-p_16) + this->P.col(1),
+                            this->H.col(1));
+                    sp1.solve();
+                    const double &q2 = sp1.get_theta();
+                    position_solutions.push_back({q1, q2, q3});
+                    position_solution_is_LS.push_back(sp4.solution_is_ls() || sp3.solution_is_ls() || sp1.solution_is_ls());
                 }
             }
         }
@@ -116,20 +114,18 @@ namespace IKS
                         this->H.col(1));
                 sp2.solve();
 
-                if(!sp2.solution_is_ls())
+                const std::vector<double> &theta_1 = sp2.get_theta_1();
+                const std::vector<double> &theta_2 = sp2.get_theta_2();
+
+                if (theta_1.size() != theta_2.size())
                 {
-                    const std::vector<double> &theta_1 = sp2.get_theta_1();
-                    const std::vector<double> &theta_2 = sp2.get_theta_2();
+                    throw std::runtime_error("Incompatible number of solutions for theta1/2 in SP2!");
+                }
 
-                    if (theta_1.size() != theta_2.size())
-                    {
-                        throw std::runtime_error("Incompatible number of solutions for theta1/2 in SP2!");
-                    }
-
-                    for (unsigned i = 0; i < theta_1.size(); i++)
-                    {
-                        position_solutions.push_back({theta_1.at(i), theta_2.at(i), q3});
-                    }
+                for (unsigned i = 0; i < theta_1.size(); i++)
+                {
+                    position_solutions.push_back({theta_1.at(i), theta_2.at(i), q3});
+                    position_solution_is_LS.push_back(sp3.solution_is_ls() || sp2.solution_is_ls());
                 }
             }
         }
@@ -152,20 +148,18 @@ namespace IKS
                         this->H.col(2));
                 sp2.solve();
 
-                if(!sp2.solution_is_ls())
+                const std::vector<double> &theta_2 = sp2.get_theta_1();
+                const std::vector<double> &theta_3 = sp2.get_theta_2();
+
+                if (theta_2.size() != theta_3.size())
                 {
-                    const std::vector<double> &theta_2 = sp2.get_theta_1();
-                    const std::vector<double> &theta_3 = sp2.get_theta_2();
+                    throw std::runtime_error("Incompatible number of solutions for theta1/2 in SP2!");
+                }
 
-                    if (theta_2.size() != theta_3.size())
-                    {
-                        throw std::runtime_error("Incompatible number of solutions for theta1/2 in SP2!");
-                    }
-
-                    for (unsigned i = 0; i < theta_2.size(); i++)
-                    {
-                        position_solutions.push_back({q1, theta_2.at(i), theta_3.at(i)});
-                    }
+                for (unsigned i = 0; i < theta_2.size(); i++)
+                {
+                    position_solutions.push_back({q1, theta_2.at(i), theta_3.at(i)});
+                    position_solution_is_LS.push_back(sp3.solution_is_ls() || sp2.solution_is_ls());
                 }
             }
         }
@@ -192,13 +186,15 @@ namespace IKS
             for (unsigned i = 0; i < q1.size(); i++)
             {
                 position_solutions.push_back({q1.at(i), q2.at(i), q3.at(i)});
+                position_solution_is_LS.push_back(position_kinematics.solution_is_ls());
             }
         }
 
         // Solve "orientation IK"
 
-        for (const auto &p_solution : position_solutions)
+        for (unsigned i = 0; i < position_solutions.size(); i++) 
         {
+            const auto& p_solution = position_solutions.at(i);
             const double &q1 = p_solution.at(0);
             const double &q2 = p_solution.at(1);
             const double &q3 = p_solution.at(2);
@@ -229,22 +225,31 @@ namespace IKS
                 sp1_q4.solve();
                 sp1_q6.solve();
                 solution.Q.push_back({q1, q2, q3, sp1_q4.get_theta(), q5, sp1_q6.get_theta()});
+                solution.is_LS_vec.push_back(position_solution_is_LS.at(i) || sp4.solution_is_ls() || sp1_q4.solution_is_ls() || sp1_q6.solution_is_ls());
             }
         }
 
         return solution;
     }
 
-    Homogeneous_T Robot_Kinematics::fwdkin(const std::vector<double> &Q) const
+    // Expects Eigen::Matrix<double, 3, N> H axes, Eigen::Matrix<double, 3, N> P offsets and N angles for N joints
+    Homogeneous_T fwd_kinematics_ndof(const Eigen::MatrixXd &H, const Eigen::MatrixXd &P, const std::vector<double> &Q)
     {
-        Eigen::Vector3d p = this->P.col(0);
+        // check if H and P are correcly sized
+        const int num_axes = Q.size();
+        if(H.rows() != 3 || H.cols() != num_axes || P.rows() != 3 || P.cols() != num_axes+1)
+        {
+            throw std::runtime_error("fwd_kinematics_ndof was given wrong kinematic model!");
+        }
+
+        Eigen::Vector3d p = P.col(0);
         Eigen::Matrix3d R = Eigen::Matrix3d::Identity();
         R.setIdentity();
 
-        for (unsigned int i = 0; i < Q.size(); i++)
+        for (unsigned int i = 0; i < num_axes; i++)
         {
-            R = R * Eigen::AngleAxisd(Q.at(i), this->H.col(i).normalized()).toRotationMatrix();
-            p = p + R * this->P.col(i + 1);
+            R = R * Eigen::AngleAxisd(Q.at(i), H.col(i).normalized()).toRotationMatrix();
+            p = p + R * P.col(i + 1);
         }
 
         Homogeneous_T result = Homogeneous_T::Identity();
