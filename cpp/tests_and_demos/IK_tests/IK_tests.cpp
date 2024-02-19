@@ -27,6 +27,7 @@ bool ik_test_SPHERICAL();
 bool ik_test_SPHERICAL_1_2_I();
 bool ik_test_SPHERICAL_2_3_I();
 bool ik_test_PUMA();
+bool ik_test_SPHERICAL_2_3_P_REDUNDANT();
 
 // No spherical wrist
 bool ik_test_3P();
@@ -57,6 +58,9 @@ int main(int argc, char *argv[])
 	ik_test_SPHERICAL_2_3_I();
 	ik_test_PUMA();
 	ik_test_3P();
+
+	// Redundancy test creates warning output on std::out
+	//ik_test_SPHERICAL_2_3_P_REDUNDANT();
 
 	return 0;
 }
@@ -219,6 +223,31 @@ bool ik_test_SPHERICAL_1_2_P()
 	}
 
 	return evaluate_test("IK spherical wrist - Axis 1||2", Irb6640_mod, ee_poses);
+}
+
+// spherical wrist, with the remaining second and third axis parallel
+// In addition, the third axis is inherently redundant for this configuration
+bool ik_test_SPHERICAL_2_3_P_REDUNDANT()
+{
+	const Eigen::Vector3d zv(0, 0, 0);
+	const Eigen::Vector3d ex(1, 0, 0);
+	const Eigen::Vector3d ey(0, 1, 0);
+	const Eigen::Vector3d ez(0, 0, 1);
+
+	Eigen::Matrix<double, 3, 6> bot_1_H;
+	bot_1_H << -ey, -ez, -ez, -ey, -ez, -ey;
+	Eigen::Matrix<double, 3, 7> bot_1_P;
+	bot_1_P << -0.173679*ey,  0.565723 * ex, 0.397168 * ex, zv, zv, zv,-0.598349*ey;
+
+	IKS::Spherical_Wrist_Robot bot_1(bot_1_H, bot_1_P);
+	std::vector<IKS::Homogeneous_T> ee_poses;
+	ee_poses.reserve(BATCH_SIZE);
+	for (unsigned i = 0; i < BATCH_SIZE; i++)
+	{
+		ee_poses.push_back(bot_1.fwdkin({rand_angle(), rand_angle(), rand_angle(), rand_angle(), rand_angle(), rand_angle()}));
+	}
+
+	return evaluate_test("IK spherical wrist - Axis 2||3", bot_1, ee_poses);
 }
 
 // spherical wrist, with the remaining second and third axis parallel
