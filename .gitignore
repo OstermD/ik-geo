@@ -35,3 +35,9 @@ octave-workspace
 
 # All binary files
 *.out
+
+# build files
+*build/
+
+# .vscode files
+*.vscode/
