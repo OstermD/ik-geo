@@ -1,4 +1,8 @@
-# IK-Geo
+# IK-Geo revised
+This is a fork of the IK-GEO repository by Alexander J. Elias, John T. Wen.
+This repository aims to improve and partly enhance the provided C++ implementations and is still under construction.
+
+Please see their paper for more information:
 Implementation of subproblem solutions using a linear algebra approach from ["Canonical Subproblems for Robot Inverse Kinematics"](https://arxiv.org/abs/2211.05737). We also include inverse kinematics solutions to a number of 6-dof robot types, examples with specific robots, and timing tests.
 
 For 7-DOF inverse kinematics using the Shoulder-Elbow-Wrist (SEW) angle, please see the [stereo-sew](https://github.com/rpiRobotics/stereo-sew) repo.
@@ -34,7 +38,15 @@ $$\begin{cases}
 ## Folder breakdown
 Make sure to switch to the right branch to see the most recent progress.
 
-`cpp`: C++ implementation (Work in progress)
+`cpp`: C++ implementation (Implemented/Enhanced within this fork). 
+Please see the "tests_and_demos" folder for information how to implement the C++ code into your project.
+Currently working implementation contains:
+
+* Solving Spherical-Wrist Robots with 6-DOF Revolute joints
+* Implementation for 6-DOF Revolute joint robots with 3 parallel axes is under construction
+* Construction of a variation of the 1D search algorithm is in planning
+
+The following folders are unchanged from the original repository and (probably) won't be adapted in the future:
 
 `ikfast`: Inverse kinematics comparison with IKFast
 
