@@ -178,7 +178,7 @@ namespace IKS
             const std::vector<double> &q2 = position_kinematics.get_theta_2();
             const std::vector<double> &q3 = position_kinematics.get_theta_3();
 
-            if (q1.size() != q2.size() && q2.size() != q3.size())
+            if (q1.size() != q2.size() || q2.size() != q3.size())
             {
                 throw std::runtime_error("Invalid number of angle combinations gathered from SP5!");
             }
