@@ -404,7 +404,7 @@ namespace IKS
 		if(kxp.isZero(ZERO_THRESH))
 		{
 			// Minimization is independent of theta -> probably redundant!
-			std::cout<<"Warning! - minimization of subproblem 3 is indipendent of theta. This may indicate redundancy"<<std::endl;
+			//std::cout<<"Warning! - minimization of subproblem 3 is indipendent of theta. This may indicate redundancy"<<std::endl;
 			is_calculated = true;
 			theta.push_back(0); // Default angle
 			return;
