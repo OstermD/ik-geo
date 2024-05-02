@@ -67,7 +67,7 @@ namespace IKS
 		std::complex<double> beta = 0.125 * B * B * B / (A * A * A) - 0.5 * B * C / (A * A) + D / A;
 		std::complex<double> gamma = -B * B * B * B * 3. / (A * A * A * A * 256.) + C * B * B / (A * A * A * 16.) - B * D / (A * A * 4.) + E / A;
 
-		if (fabs(beta.real()) < 1e-12 && fabs(beta.imag()) < 1e-12)
+		if (fabs(beta.real()) < ZERO_THRESH && fabs(beta.imag()) < ZERO_THRESH)
 		{
 			std::complex<double> tmp = sqrt(alpha * alpha - gamma * 4. + i);
 			roots.push_back(-B / (A * 4.) + sqrt((-alpha + tmp) / 2. + i));
@@ -83,7 +83,7 @@ namespace IKS
 		std::complex<double> U = pow(R, 1. / 3);
 
 		std::complex<double> y;
-		if (fabs(U.real()) < 1e-12 && fabs(U.imag()) < 1e-12)
+		if (fabs(U.real()) < ZERO_THRESH && fabs(U.imag()) < ZERO_THRESH)
 		{
 			y = -alpha * 5. / 6. - pow(Q, 1. / 3);
 		}
@@ -110,7 +110,7 @@ namespace IKS
 		xm1'*xm1 + xi'*xn1'*xn1*xi  + xm1'*xn1*xi == 1
 		xm2'*xm2 + xi'*xn2'*xn2*xi  + xm2'*xn2*xi == 1
 		Where xi = [xi_1; xi_2] */
-		const double EPSILON = 1e-12;
+		const double EPSILON = ZERO_THRESH;
 		Eigen::Matrix<double, 2, 2> A_1 = xn1.transpose() * xn1;
 		double a = A_1.coeffRef(0, 0);
 		double b = 2 * A_1.coeffRef(1, 0);
@@ -239,8 +239,8 @@ namespace IKS
 		const Eigen::Vector2d x = a * p2;
 		theta = std::atan2(x.x(), x.y());
 
-		_solution_is_ls = std::fabs(p1.norm() - p2.norm()) > 1e-7 ||
-						  std::fabs(k.dot(p1) - k.dot(p2)) > 1e-7;
+		_solution_is_ls = std::fabs(p1.norm() - p2.norm()) > ZERO_THRESH ||
+						  std::fabs(k.dot(p1) - k.dot(p2)) > ZERO_THRESH;
 
 		is_calculated = true;
 	}
@@ -567,7 +567,7 @@ namespace IKS
 
 	void SP5::solve()
 	{
-		const double EPSILON = 1e-6; // Should this be different?
+		const double EPSILON = ZERO_THRESH; // Should this be different?
 		std::vector<double> theta;
 		theta.reserve(8);
 
