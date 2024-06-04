@@ -1,8 +1,3 @@
-//---------------------------------------------------------------//
-// Name: sp_1.cpp
-// Author: Runbin Chen and Amar Maksumic
-// Purpose: Port of the subproblem files functionality
-//---------------------------------------------------------------//
 #include "sp.h"
 #include <math.h>
 #include <vector>
@@ -401,7 +396,7 @@ namespace IKS
 	{
 		const Eigen::Vector3d kxp = k.cross(p1);
 		Eigen::Matrix<double, 3, 2> a_1;
-		if(kxp.isZero(ZERO_THRESH))
+		if(kxp.isZero(ZERO_THRESH) || k.cross(p2).isZero(ZERO_THRESH))
 		{
 			// Minimization is independent of theta -> probably redundant!
 			//std::cout<<"Warning! - minimization of subproblem 3 is indipendent of theta. This may indicate redundancy"<<std::endl;
