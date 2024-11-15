@@ -295,10 +295,6 @@ namespace IKS
 		SP4 sp4_theta_2(k1, norm_p2, k2, k1.dot(norm_p1));
 
 		sp4_theta_1.solve();
-		if(std::isnan(sp4_theta_1.error()))
-		{
-			double x = 0;
-		}
 		sp4_theta_2.solve();
 
 		_solution_is_ls = std::fabs(p1.norm() - p2.norm()) > ZERO_THRESH ||
@@ -429,13 +425,9 @@ namespace IKS
 
 		const Eigen::Vector2d x_ls = a_1.transpose() * (-2.0 * p2 * b / norm_a_sq);
 
-		if (x_ls.squaredNorm() > 1.0 - ZERO_THRESH || 1.0 - b * b / norm_a_sq < ZERO_THRESH)
+		if (x_ls.squaredNorm() > 1.0 - ZERO_THRESH || 1.0 - b * b / norm_a_sq < 0)
 		{
 			theta.push_back(std::atan2(x_ls.x(), x_ls.y()));
-			if (std::isnan(std::atan2(x_ls.x(), x_ls.y())))
-			{
-				double x = 0;
-			}
 			_solution_is_ls = true;
 		}
 		else
@@ -450,14 +442,6 @@ namespace IKS
 			theta.push_back(std::atan2(sc_1.x(), sc_1.y()));
 			theta.push_back(std::atan2(sc_2.x(), sc_2.y()));
 
-			if (std::isnan(std::atan2(sc_1.x(), sc_1.y())))
-			{
-				double x = 0;
-			}
-			if(std::isnan(std::atan2(sc_2.x(), sc_2.y())))
-			{
-				double x = 0;
-			}
 			_solution_is_ls = false;
 		}
 
@@ -516,14 +500,10 @@ namespace IKS
 		const Eigen::Vector2d a = h.transpose() * a_1;
 
 		const double b = d - (h.transpose() * k * k.transpose() * p).x();
-		if(std::isnan(d))
-		{
-			std::cout<<std::endl;
-		}
 		const double norm_a_sq = a.squaredNorm();
 		const Eigen::Vector2d x_ls = a_1.transpose() * h * b;
 
-		if (norm_a_sq - b * b >  ZERO_THRESH)
+		if (norm_a_sq - b * b > 0)
 		{
 			const double xi = std::sqrt(norm_a_sq - b * b );
 			const Eigen::Vector2d a_perp_tilde(a.y(), -a.x());
@@ -728,7 +708,7 @@ namespace IKS
 			}
 		}
 
-		reduce_solutionset();
+		//reduce_solutionset();
 		is_calculated = true;
 	}
 
@@ -956,8 +936,17 @@ namespace IKS
 		for (const auto[xi_1, xi_2] : xi)
 		{
 			Eigen::Matrix<double, 4, 1> x = x_min + x_null_1 * xi_1 + x_null_2 * xi_2;
-			theta_1.push_back(atan2(x(0, 0), x(1, 0)));
-			theta_2.push_back(atan2(x(2, 0), x(3, 0)));
+
+			if(x.norm() < ZERO_THRESH)
+			{
+				theta_1.push_back(0);
+				theta_2.push_back(0);
+			}
+			else
+			{
+				theta_1.push_back(atan2(x(0, 0), x(1, 0)));
+				theta_2.push_back(atan2(x(2, 0), x(3, 0)));
+			}
 		}
 
 		is_calculated = true;

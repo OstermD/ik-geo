@@ -8,7 +8,7 @@ namespace IKS
 {
 
 #ifndef ZERO_THRESH
-#define ZERO_THRESH 1e-8
+#define ZERO_THRESH 1e-12
 #endif
 
   std::pair<Eigen::Vector2d, Eigen::Vector3d> cone_polynomials(const Eigen::Vector3d &p0_i, const Eigen::Vector3d &k_i, const Eigen::Vector3d &p_i, const Eigen::Vector3d &p_i_s, const Eigen::Vector3d &k2);
