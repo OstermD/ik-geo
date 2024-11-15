@@ -51,50 +51,16 @@ namespace IKS
 
 	std::vector<std::complex<double>> quartic_roots(const Eigen::Matrix<double, 1, 5> &poly)
 	{
+		Eigen::PolynomialSolver<double, Eigen::Dynamic> solver;
+		solver.compute(poly);
+		const Eigen::PolynomialSolver<double, Eigen::Dynamic>::RootsType &roots = solver.roots();
 
-		const std::complex<double> i = std::complex<double>(0, 0);
-
-		std::vector<std::complex<double>> roots;
-
-		double A = poly(0, 0), B = poly(0, 1), C = poly(0, 2), D = poly(0, 3), E = poly(0, 4);
-
-		std::complex<double> alpha = -0.375 * B * B / (A * A) + C / A;
-		std::complex<double> beta = 0.125 * B * B * B / (A * A * A) - 0.5 * B * C / (A * A) + D / A;
-		std::complex<double> gamma = -B * B * B * B * 3. / (A * A * A * A * 256.) + C * B * B / (A * A * A * 16.) - B * D / (A * A * 4.) + E / A;
-
-		if (fabs(beta.real()) < ZERO_THRESH && fabs(beta.imag()) < ZERO_THRESH)
-		{
-			std::complex<double> tmp = sqrt(alpha * alpha - gamma * 4. + i);
-			roots.push_back(-B / (A * 4.) + sqrt((-alpha + tmp) / 2. + i));
-			roots.push_back(-B / (A * 4.) - sqrt((-alpha + tmp) / 2. + i));
-			roots.push_back(-B / (A * 4.) + sqrt((-alpha - tmp) / 2. + i));
-			roots.push_back(-B / (A * 4.) - sqrt((-alpha - tmp) / 2. + i));
-			return roots;
+		std::vector<std::complex<double>> result(roots.size());
+		for (int i = 0; i < roots.size(); ++i) {
+			result[i] = roots[i];
 		}
 
-		std::complex<double> P = -alpha * alpha / 12. - gamma;
-		std::complex<double> Q = -alpha * alpha * alpha / 108. + alpha * gamma / 3. - beta * beta * 0.125;
-		std::complex<double> R = -Q * 0.5 + sqrt(Q * Q * 0.25 + P * P * P / 27. + i);
-		std::complex<double> U = pow(R, 1. / 3);
-
-		std::complex<double> y;
-		if (fabs(U.real()) < ZERO_THRESH && fabs(U.imag()) < ZERO_THRESH)
-		{
-			y = -alpha * 5. / 6. - pow(Q, 1. / 3);
-		}
-		else
-		{
-			y = -alpha * 5. / 6. + U - P / (3. * U);
-		}
-
-		std::complex<double> W = sqrt(alpha + 2. * y + i);
-
-		roots.push_back(-B / (A * 4.) + (W + sqrt(-(alpha * 3. + 2. * y + beta * 2. / W))) / 2.);
-		roots.push_back(-B / (A * 4.) + (W - sqrt(-(alpha * 3. + 2. * y + beta * 2. / W))) / 2.);
-		roots.push_back(-B / (A * 4.) - (W + sqrt(-(alpha * 3. + 2. * y - beta * 2. / W))) / 2.);
-		roots.push_back(-B / (A * 4.) - (W - sqrt(-(alpha * 3. + 2. * y - beta * 2. / W))) / 2.);
-
-		return roots;
+		return result;
 	}
 
 	std::vector<std::pair<double, double>> solve_2_ellipse_numeric(const Eigen::Vector2d &xm1, const Eigen::Matrix<double, 2, 2> &xn1,
@@ -105,7 +71,7 @@ namespace IKS
 		xm1'*xm1 + xi'*xn1'*xn1*xi  + xm1'*xn1*xi == 1
 		xm2'*xm2 + xi'*xn2'*xn2*xi  + xm2'*xn2*xi == 1
 		Where xi = [xi_1; xi_2] */
-		const double EPSILON = ZERO_THRESH;
+		const double EPSILON = 1e-5;
 		Eigen::Matrix<double, 2, 2> A_1 = xn1.transpose() * xn1;
 		double a = A_1.coeffRef(0, 0);
 		double b = 2 * A_1.coeffRef(1, 0);
@@ -143,7 +109,7 @@ namespace IKS
     double z4 = a*a*c1*c1 - 2.0*a*c1*a1*c + a1*a1*c*c - b*a*b1*c1 - b*b1*a1*c + b*b*a1*c1 +
         c*a*b1*b1;
 		Eigen::Matrix<double, 1, 5> z;
-		z << z4, z3, z2, z1, z0;
+		z << z0,z1, z2, z3, z4;
 		std::vector<std::complex<double>> roots = quartic_roots(z);
 
 		std::vector<std::pair<double, double>> xi;
@@ -600,7 +566,7 @@ namespace IKS
 
 		const Eigen::Matrix<double, 1, 5> eqn_real = convolution_3(rhs, rhs) - 4.0 * convolution_3(p_13_sq, r_1);
 
-		std::vector<std::complex<double>> all_roots = quartic_roots(eqn_real);
+		std::vector<std::complex<double>> all_roots = quartic_roots(eqn_real.row(0).reverse());
 
 		std::vector<double> h_vec;
 		for (const auto &root : all_roots)
