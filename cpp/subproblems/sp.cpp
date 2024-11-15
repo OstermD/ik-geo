@@ -232,10 +232,19 @@ namespace IKS
 		a.row(1) = -k.cross(kxp);
 
 		const Eigen::Vector2d x = a * p2;
-		theta = std::atan2(x.x(), x.y());
 
-		_solution_is_ls = std::fabs(p1.norm() - p2.norm()) > ZERO_THRESH ||
-						  std::fabs(k.dot(p1) - k.dot(p2)) > ZERO_THRESH;
+		if(x.norm() > ZERO_THRESH)
+		{
+			theta = std::atan2(x.x(), x.y());
+			_solution_is_ls = std::fabs(p1.norm() - p2.norm()) > ZERO_THRESH ||
+			std::fabs(k.dot(p1) - k.dot(p2)) > ZERO_THRESH;
+		}
+		else
+		{
+			theta = 0;
+			_solution_is_ls = true;
+		}
+
 
 		is_calculated = true;
 	}
@@ -286,6 +295,10 @@ namespace IKS
 		SP4 sp4_theta_2(k1, norm_p2, k2, k1.dot(norm_p1));
 
 		sp4_theta_1.solve();
+		if(std::isnan(sp4_theta_1.error()))
+		{
+			double x = 0;
+		}
 		sp4_theta_2.solve();
 
 		_solution_is_ls = std::fabs(p1.norm() - p2.norm()) > ZERO_THRESH ||
@@ -402,6 +415,7 @@ namespace IKS
 			//std::cout<<"Warning! - minimization of subproblem 3 is indipendent of theta. This may indicate redundancy"<<std::endl;
 			is_calculated = true;
 			theta.push_back(0); // Default angle
+			_solution_is_ls = true;
 			return;
 		}
 
@@ -415,9 +429,13 @@ namespace IKS
 
 		const Eigen::Vector2d x_ls = a_1.transpose() * (-2.0 * p2 * b / norm_a_sq);
 
-		if (x_ls.squaredNorm() > 1.0)
+		if (x_ls.squaredNorm() > 1.0 - ZERO_THRESH || 1.0 - b * b / norm_a_sq < ZERO_THRESH)
 		{
 			theta.push_back(std::atan2(x_ls.x(), x_ls.y()));
+			if (std::isnan(std::atan2(x_ls.x(), x_ls.y())))
+			{
+				double x = 0;
+			}
 			_solution_is_ls = true;
 		}
 		else
@@ -431,6 +449,15 @@ namespace IKS
 
 			theta.push_back(std::atan2(sc_1.x(), sc_1.y()));
 			theta.push_back(std::atan2(sc_2.x(), sc_2.y()));
+
+			if (std::isnan(std::atan2(sc_1.x(), sc_1.y())))
+			{
+				double x = 0;
+			}
+			if(std::isnan(std::atan2(sc_2.x(), sc_2.y())))
+			{
+				double x = 0;
+			}
 			_solution_is_ls = false;
 		}
 
@@ -489,25 +516,36 @@ namespace IKS
 		const Eigen::Vector2d a = h.transpose() * a_1;
 
 		const double b = d - (h.transpose() * k * k.transpose() * p).x();
-
+		if(std::isnan(d))
+		{
+			std::cout<<std::endl;
+		}
 		const double norm_a_sq = a.squaredNorm();
 		const Eigen::Vector2d x_ls = a_1.transpose() * h * b;
 
-		if (norm_a_sq > b * b)
+		if (norm_a_sq - b * b >  ZERO_THRESH)
 		{
-			const double xi = std::sqrt((norm_a_sq - b * b));
+			const double xi = std::sqrt(norm_a_sq - b * b );
 			const Eigen::Vector2d a_perp_tilde(a.y(), -a.x());
 
 			const Eigen::Vector2d sc_1 = x_ls + xi * a_perp_tilde;
 			const Eigen::Vector2d sc_2 = x_ls - xi * a_perp_tilde;
 
 			theta.push_back(std::atan2(sc_1.x(), sc_1.y()));
-			theta.push_back(std::atan2(sc_2.x(), sc_2.y()));
+			theta.push_back(std::atan2(sc_2.x(), sc_2.y()));			
 			_solution_is_ls = false;
 		}
 		else
 		{
-			theta.push_back(std::atan2(x_ls.x(), x_ls.y()));
+			if (x_ls.norm() < ZERO_THRESH)
+			{
+				theta.push_back(0);
+			}
+			else
+			{
+				theta.push_back(std::atan2(x_ls.x(), x_ls.y()));
+			}
+
 			_solution_is_ls = true;
 		}
 
@@ -582,7 +620,7 @@ namespace IKS
 
 		const Eigen::Matrix<double, 1, 5> eqn_real = convolution_3(rhs, rhs) - 4.0 * convolution_3(p_13_sq, r_1);
 
-		const std::vector<std::complex<double>> all_roots = quartic_roots(eqn_real);
+		std::vector<std::complex<double>> all_roots = quartic_roots(eqn_real);
 
 		std::vector<double> h_vec;
 		for (const auto &root : all_roots)
@@ -591,6 +629,18 @@ namespace IKS
 			{
 				h_vec.push_back(root.real());
 			}
+		}
+
+		// No analytical solution found
+		if (h_vec.size() == 0)
+		{
+			// Choose root with smallest imaginary component
+			std::sort(all_roots.begin(), all_roots.end(), [](const std::complex<double>& a, const std::complex<double>& b) {
+      			return a.imag() < b.imag();
+      		});
+
+			h_vec.push_back(all_roots.at(0).real());
+			_solution_is_ls = true;
 		}
 
 		const Eigen::Vector3d kxp1 = k1.cross(p1);
@@ -653,9 +703,27 @@ namespace IKS
 					SP1 sp(v3, v1, k2);
 					sp.solve();
 
-					theta_1.push_back(std::atan2(sc_1.x(), sc_1.y()));
+					if (sc_1.norm() > ZERO_THRESH)
+					{
+						theta_1.push_back(std::atan2(sc_1.x(), sc_1.y()));
+					}
+					else
+					{
+						theta_1.push_back(0);
+						_solution_is_ls = true;
+					}
+
+					if (sc_3.norm() > ZERO_THRESH)
+					{
+						theta_3.push_back(std::atan2(sc_3.x(), sc_3.y()));
+					}
+					else
+					{
+						theta_3.push_back(0);
+						_solution_is_ls = true;
+					}
+
 					theta_2.push_back(sp.get_theta());
-					theta_3.push_back(std::atan2(sc_3.x(), sc_3.y()));
 				}
 			}
 		}
