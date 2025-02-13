@@ -577,15 +577,13 @@ namespace IKS
 			}
 		}
 
-		// No analytical solution found
+		// No analytical solution found - use all roots and decide later for valid solutions
 		if (h_vec.size() == 0)
 		{
-			// Choose root with smallest imaginary component
-			std::sort(all_roots.begin(), all_roots.end(), [](const std::complex<double>& a, const std::complex<double>& b) {
-      			return a.imag() < b.imag();
-      		});
-
-			h_vec.push_back(all_roots.at(0).real());
+			for (const auto &root : all_roots)
+			{
+				h_vec.push_back(root.real());
+			}
 			_solution_is_ls = true;
 		}
 
@@ -606,6 +604,10 @@ namespace IKS
 		Eigen::Matrix2d j;
 		j << 0, 1,
 			-1, 0;
+
+		// We save angle combinations w.r.t. their error in std::fabs((v1 - h * k2).norm() - (v3 - h * k2).norm())
+		// If no combination reaches our threshold we can then still output the best approximate solution
+		std::vector<std::tuple<double, double, double, double>> norm_errors_angles;
 
 		for (const auto &h : h_vec)
 		{
@@ -644,10 +646,12 @@ namespace IKS
 				Eigen::Vector3d v1 = a_1 * sc_1 + p1_s;
 				Eigen::Vector3d v3 = a_3 * sc_3 + p3_s;
 
-				if (std::fabs((v1 - h * k2).norm() - (v3 - h * k2).norm()) < EPSILON)
+				const double norm_equation_error = std::fabs((v1 - h * k2).norm() - (v3 - h * k2).norm());
+				if (norm_equation_error < EPSILON)
 				{
 					SP1 sp(v3, v1, k2);
 					sp.solve();
+					_solution_is_ls |= sp.solution_is_ls();
 
 					if (sc_1.norm() > ZERO_THRESH)
 					{
@@ -671,7 +675,44 @@ namespace IKS
 
 					theta_2.push_back(sp.get_theta());
 				}
+				// Only save approximate solutions if no analytical one is given yet
+				else if (theta_1.size()==0)
+				{
+					SP1 sp(v3, v1, k2);
+					sp.solve();
+
+					double approx_t1 = 0;
+					double approx_t2 = 0;
+					double approx_t3 = 0;
+
+					if (sc_1.norm() > ZERO_THRESH)
+					{
+						approx_t1 = std::atan2(sc_1.x(), sc_1.y());
+					}
+
+					if (sc_3.norm() > ZERO_THRESH)
+					{
+						approx_t3 = std::atan2(sc_3.x(), sc_3.y());
+					}
+
+					approx_t2 = sp.get_theta();
+
+					norm_errors_angles.push_back({norm_equation_error, approx_t1, approx_t2, approx_t3});
+				}
 			}
+		}
+
+		// Check if any valid angles were found - if not, use best approximate solution
+		if (theta_1.size() == 0)
+		{
+			// Sort by error
+			std::sort(norm_errors_angles.begin(), norm_errors_angles.end(), [](const std::tuple<double, double, double, double>& a, const std::tuple<double, double, double, double>& b) {
+				return std::get<0>(a) < std::get<0>(b);
+			});
+			theta_1.push_back(std::get<1>(norm_errors_angles.at(0)));
+			theta_2.push_back(std::get<2>(norm_errors_angles.at(0)));
+			theta_3.push_back(std::get<3>(norm_errors_angles.at(0)));
+			_solution_is_ls = true;
 		}
 
 		//reduce_solutionset();
