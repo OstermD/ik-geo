@@ -546,7 +546,7 @@ namespace IKS
 
 	void SP5::solve()
 	{
-		const double EPSILON = ZERO_THRESH; // Should this be different?
+		const double EPSILON = 1e-6; // Should this be different?
 		std::vector<double> theta;
 		theta.reserve(8);
 
@@ -646,8 +646,8 @@ namespace IKS
 				Eigen::Vector3d v1 = a_1 * sc_1 + p1_s;
 				Eigen::Vector3d v3 = a_3 * sc_3 + p3_s;
 
-				const double norm_equation_error = std::fabs((v1 - h * k2).norm() - (v3 - h * k2).norm());
-				if (norm_equation_error < EPSILON)
+				const double norm_equation_error = std::fabs(v1.norm() - v3.norm());
+				if (norm_equation_error < 1e-3)
 				{
 					SP1 sp(v3, v1, k2);
 					sp.solve();
@@ -675,8 +675,7 @@ namespace IKS
 
 					theta_2.push_back(sp.get_theta());
 				}
-				// Only save approximate solutions if no analytical one is given yet
-				else if (theta_1.size()==0)
+				else
 				{
 					SP1 sp(v3, v1, k2);
 					sp.solve();
@@ -698,6 +697,7 @@ namespace IKS
 					approx_t2 = sp.get_theta();
 
 					norm_errors_angles.push_back({norm_equation_error, approx_t1, approx_t2, approx_t3});
+					_solution_is_ls = true;
 				}
 			}
 		}
