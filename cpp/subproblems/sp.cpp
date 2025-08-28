@@ -616,21 +616,12 @@ namespace IKS
 
 			const double hd_1 = h - delta_1;
 			const double hd_3 = h - delta_3;
+	
+			double sq_1 = (a_1.transpose() * k2).squaredNorm() - hd_1 * hd_1;
+			double sq_3 = (a_3.transpose() * k2).squaredNorm() - hd_3 * hd_3;
 
-			const double sq_1 = (a_1.transpose() * k2).squaredNorm() - hd_1 * hd_1;
-			if (sq_1 < 0.0)
-			{
-				continue;
-			}
-
-			const double sq_3 = (a_3.transpose() * k2).squaredNorm() - hd_3 * hd_3;
-			if (sq_3 < 0.0)
-			{
-				continue;
-			}
-
-			const Eigen::Vector2d pm_1 = j * a_1.transpose() * k2 * std::sqrt(sq_1);
-			const Eigen::Vector2d pm_3 = j * a_3.transpose() * k2 * std::sqrt(sq_3);
+			const Eigen::Vector2d pm_1 = j * a_1.transpose() * k2 * std::sqrt(std::complex<double>(sq_1, 0.0)).real();
+			const Eigen::Vector2d pm_3 = j * a_3.transpose() * k2 * std::sqrt(std::complex<double>(sq_3, 0.0)).real();
 
 			for (int i_sign = 0; i_sign < signs[0].size(); ++i_sign)
 			{
@@ -647,72 +638,33 @@ namespace IKS
 				Eigen::Vector3d v3 = a_3 * sc_3 + p3_s;
 
 				const double norm_equation_error = std::fabs(v1.norm() - v3.norm());
-				if (norm_equation_error < 1e-3)
+
+				SP1 sp(v3, v1, k2);
+				sp.solve();
+				_solution_is_ls |= sp.solution_is_ls() | norm_equation_error > 1e-4;
+
+				if (sc_1.norm() > ZERO_THRESH)
 				{
-					SP1 sp(v3, v1, k2);
-					sp.solve();
-					_solution_is_ls |= sp.solution_is_ls();
-
-					if (sc_1.norm() > ZERO_THRESH)
-					{
-						theta_1.push_back(std::atan2(sc_1.x(), sc_1.y()));
-					}
-					else
-					{
-						theta_1.push_back(0);
-						_solution_is_ls = true;
-					}
-
-					if (sc_3.norm() > ZERO_THRESH)
-					{
-						theta_3.push_back(std::atan2(sc_3.x(), sc_3.y()));
-					}
-					else
-					{
-						theta_3.push_back(0);
-						_solution_is_ls = true;
-					}
-
-					theta_2.push_back(sp.get_theta());
+					theta_1.push_back(std::atan2(sc_1.x(), sc_1.y()));
 				}
 				else
 				{
-					SP1 sp(v3, v1, k2);
-					sp.solve();
-
-					double approx_t1 = 0;
-					double approx_t2 = 0;
-					double approx_t3 = 0;
-
-					if (sc_1.norm() > ZERO_THRESH)
-					{
-						approx_t1 = std::atan2(sc_1.x(), sc_1.y());
-					}
-
-					if (sc_3.norm() > ZERO_THRESH)
-					{
-						approx_t3 = std::atan2(sc_3.x(), sc_3.y());
-					}
-
-					approx_t2 = sp.get_theta();
-
-					norm_errors_angles.push_back({norm_equation_error, approx_t1, approx_t2, approx_t3});
+					theta_1.push_back(0);
 					_solution_is_ls = true;
 				}
-			}
-		}
 
-		// Check if any valid angles were found - if not, use best approximate solution
-		if (theta_1.size() == 0)
-		{
-			// Sort by error
-			std::sort(norm_errors_angles.begin(), norm_errors_angles.end(), [](const std::tuple<double, double, double, double>& a, const std::tuple<double, double, double, double>& b) {
-				return std::get<0>(a) < std::get<0>(b);
-			});
-			theta_1.push_back(std::get<1>(norm_errors_angles.at(0)));
-			theta_2.push_back(std::get<2>(norm_errors_angles.at(0)));
-			theta_3.push_back(std::get<3>(norm_errors_angles.at(0)));
-			_solution_is_ls = true;
+				if (sc_3.norm() > ZERO_THRESH)
+				{
+					theta_3.push_back(std::atan2(sc_3.x(), sc_3.y()));
+				}
+				else
+				{
+					theta_3.push_back(0);
+					_solution_is_ls = true;
+				}
+
+				theta_2.push_back(sp.get_theta());
+			}
 		}
 
 		//reduce_solutionset();
