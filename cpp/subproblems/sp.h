@@ -2,7 +2,7 @@
 #define _SP_H_
 
 #include <vector>
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 
 namespace IKS
 {

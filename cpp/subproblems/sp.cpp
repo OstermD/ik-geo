@@ -4,8 +4,8 @@
 #include <limits>
 #include <complex>
 #include <iostream>
-#include <eigen3/Eigen/Dense>
-#include <eigen3/unsupported/Eigen/Polynomials>
+#include <Eigen/Dense>
+#include <unsupported/Eigen/Polynomials>
 
 namespace IKS
 {
